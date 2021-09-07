@@ -1,8 +1,6 @@
 # End-to-end workflows
 
-This is prototypes for running end-to-end workflows for the metaG
-and metaT workflows.
-
+This contains a prototype for running end-to-end workflows for the metaG workflow.
 
 ## Prep
 

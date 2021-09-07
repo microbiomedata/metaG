@@ -19,24 +19,20 @@ workflow nmdc_metag {
 
   call stage {
     input: container=container,
-           input_file=input_file,
-           proj=proj
+           input_file=input_file
   }
   # Estimate RQC runtime at an hour per compress GB
   call rqc.jgi_rqcfilter as qc {
     input: input_files=[stage.read],
-           outdir="${outdir}/qa/",
            threads=16,
            memory="60G"
   }
   call assembly.jgi_metaASM as asm {
-    input: input_file=qc.filtered,
-           rename_contig_prefix=proj,
-           outdir="${outdir}/assembly/"
+    input: input_file=qc.filtered
   }
 
   call awf.annotation {
-    input: imgap_project_id=stage.pref,
+    input: imgap_project_id="nmdc_",
            imgap_input_fasta=asm.contig,
            database_location=database
   }
@@ -54,38 +50,40 @@ workflow nmdc_metag {
                 },
            reads = split_interleaved_fastq.outFastq,
            paired = true,
-           prefix = stage.pref,
-           outdir = "${outdir}/ReadbasedAnalysis",
+           prefix = "nmdc_",
            cpu = 4
   }
 
   call mags.nmdc_mags {
     input:
-      proj_name=proj,
+      proj_name="nmdc",
       contig_file=asm.contig,
       sam_file=asm.bam,
       gff_file=annotation.functional_gff,
       gtdbtk_database="/refdata/GTDBTK_DB",
-      outdir="${outdir}/MAGs",
       container="microbiomedata/nmdc_mbin:0.1.2"
   }
 
 
   call finish {
-    input: container="microbiomedata/workflowmeta:1.0.0",
+    input: container="microbiomedata/workflowmeta:1.0.4",
+           proj=proj,
            start=stage.start,
            resource=resource,
-           url_base=url_base,
+           url_root=url_root,
            git_url=git_url,
            informed_by=informed_by,
            read = stage.read,
            filtered = qc.filtered[0],
            filtered_stats = qc.stats[0],
+           filtered_stats2 = qc.stats2[0],
            fasta=asm.contig,
            scaffold=asm.scaffold,
            agp=asm.agp,
            bam=asm.bam,
+           samgz=asm.samgz,
            covstats=asm.covstats,
+           asmstats=asm.asmstats,
            proteins_faa=annotation.proteins_faa,
            functional_gff=annotation.functional_gff,
            structural_gff=annotation.structural_gff,
@@ -113,6 +111,8 @@ workflow nmdc_metag {
            lowdepth=nmdc_mags.low,
            unbinned=nmdc_mags.unbinned,
            checkm=nmdc_mags.checkm,
+           hqmq_bin_fasta_files=nmdc_mags.hqmq_bin_fasta_files,
+           bin_fasta_files=nmdc_mags.bin_fasta_files,
            outdir=outdir
   }
 
@@ -125,9 +125,7 @@ workflow nmdc_metag {
 
 task stage {
    String container
-   String proj
-   String prefix=sub(proj, ":", "_")
-   String target="${prefix}.fastq.gz"
+   String target="raw.fastq.gz"
    String input_file
 
    command <<<
@@ -145,7 +143,6 @@ task stage {
    output{
       File read = "${target}"
       String start = read_string("start.txt")
-      String pref = "${prefix}"
    }
    runtime {
      memory: "1 GiB"
@@ -180,19 +177,24 @@ task split_interleaved_fastq{
 
 task finish {
    String container
+   String proj
+   String prefix=sub(proj, ":", "_")
    String start
    String informed_by
    String resource
-   String url_base
+   String url_root
    String git_url
    File read
    File filtered
    File filtered_stats
+   File filtered_stats2
    File fasta
    File scaffold
    File agp
    File bam
+   File samgz
    File covstats
+   File asmstats
    File proteins_faa
    File structural_gff
    File functional_gff
@@ -221,6 +223,10 @@ task finish {
    File lowdepth
    File unbinned
    File checkm
+   Array[File] hqmq_bin_fasta_files
+   Array[File] bin_fasta_files
+   Int n_hqmq=length(hqmq_bin_fasta_files)
+   Int n_bin=length(bin_fasta_files)
    File? gottcha2_report_tsv
    File? gottcha2_full_tsv
    File? gottcha2_krona_html
@@ -236,94 +242,173 @@ task finish {
    String annodir="${outdir}/annotation/"
    String magsdir="${outdir}/MAGs/"
    String rbadir="${outdir}/ReadbasedAnalysis/"
+   String orig_prefix="scaffold"
+   String sed="s/${orig_prefix}_/${proj}_/"
 
    command{
        set -e
-       mkdir -p ${annodir}
        end=`date --iso-8601=seconds`
 
        # Generate QA objects
+       mkdir -p ${qadir}
+       cp ${filtered} ${qadir}/${prefix}_filtered.fastq.gz
+       cp ${filtered_stats} ${qadir}/${prefix}_filterStats.txt
+       cp ${filtered_stats2} ${qadir}/${prefix}_filterStats2.txt
        /scripts/rqcstats.py ${filtered_stats} > stats.json
-       /scripts/generate_objects.py --type "qa" --id ${informed_by} \
+       /scripts/generate_objects.py --type "nmdc:qaActivity" --id ${informed_by} \
+             --name "QA Activity for ${proj}" --part ${proj} \
              --start ${start} --end $end \
-             --resource '${resource}' --url ${url_base} --giturl ${git_url} \
+             --resource '${resource}' --url ${url_root}${proj}/qa/ --giturl ${git_url} \
              --extra stats.json \
              --inputs ${read} \
              --outputs \
-             ${filtered} 'Filtered Reads' \
-             ${filtered_stats} 'Filtered Stats'
+             ${qadir}/${prefix}_filtered.fastq.gz 'Filtered Reads' \
+             ${qadir}/${prefix}_filterStats.txt 'Filtered Stats'
        cp activity.json data_objects.json ${qadir}/
 
        # Generate assembly objects
-       /scripts/generate_objects.py --type "assembly" --id ${informed_by} \
+       mkdir -p ${assemdir}
+       cat ${fasta} | sed ${sed} > ${assemdir}/${prefix}_contigs.fna
+       cat ${scaffold} | sed ${sed} > ${assemdir}/${prefix}_scaffolds.fna
+       cat ${covstats} | sed ${sed} > ${assemdir}/${prefix}_covstats.txt
+       cp ${asmstats} ${assemdir}/${prefix}_stats.json
+       cat ${agp} | sed ${sed} > ${assemdir}/${prefix}_assembly.agp
+       # TODO: Fix up IDs
+       ## Bam file     
+       samtools view -h ${bam} | sed 's/testMG_/newName_/g' | \
+          samtools view -hb -o ${assemdir}/${prefix}_pairedMapped_sorted.bam
+       ## Sam.gz file
+       samtools view -h ${samgz} | sed 's/testMG_/newName_/g' | \
+          gzip -c - > ${assemdir}/${prefix}_pairedMapped.sam.gz
+
+       /scripts/generate_objects.py --type "nmdc:assemblyActivity" --id ${informed_by} \
+             --name "Assembly Activity for ${proj}" --part ${proj} \
              --start ${start} --end $end \
-             --resource '${resource}' --url ${url_base} --giturl ${git_url} \
-             --inputs ${filtered} \
+             --resource '${resource}' --url ${url_root}${proj}/assembly/ --giturl ${git_url} \
+             --extra ${asmstats} \
+             --inputs ${qadir}/${prefix}_filtered.fastq.gz \
              --outputs \
-             ${covstats} 'Metagenome Contig Coverage Stats' \
-             ${fasta} 'Assembled contigs fasta' \
-             ${scaffold} 'Assembled scaffold fasta' \
-             ${agp} 'Assembled AGP file' \
-             ${bam} 'Metagenome Alignment BAM file'
+             ${assemdir}/${prefix}_contigs.fna 'Assembled contigs fasta' \
+             ${assemdir}/${prefix}_scaffolds.fna 'Assembled scaffold fasta' \
+             ${assemdir}/${prefix}_covstats.txt 'Metagenome Contig Coverage Stats' \
+             ${assemdir}/${prefix}_assembly.agp 'Assembled AGP file' \
+             ${assemdir}/${prefix}_pairedMapped_sorted.bam 'Metagenome Alignment BAM file'
        cp activity.json data_objects.json ${assemdir}/
 
        # Generate annotation objects
-       nmdc gff2json ${functional_gff} -of features.json -oa annotations.json -ai ${informed_by}
+       mkdir -p ${annodir}
+       cat ${proteins_faa} | sed ${sed} > ${annodir}/${prefix}_proteins.faa
+       cat ${structural_gff} | sed ${sed} > ${annodir}/${prefix}_structural_annotation.gff
+       cat ${functional_gff} | sed ${sed} > ${annodir}/${prefix}_functional_annotation.gff
+       cat ${ko_tsv} | sed ${sed} > ${annodir}/${prefix}_ko.tsv
+       cat ${ec_tsv} | sed ${sed} > ${annodir}/${prefix}_ec.tsv
+       cat ${cog_gff} | sed ${sed} > ${annodir}/${prefix}_cog.gff
+       cat ${pfam_gff} | sed ${sed} > ${annodir}/${prefix}_pfam.gff
+       cat ${tigrfam_gff} | sed ${sed} > ${annodir}/${prefix}_tigrfam.gff
+       cat ${smart_gff} | sed ${sed} > ${annodir}/${prefix}_smart.gff
+       cat ${supfam_gff} | sed ${sed} > ${annodir}/${prefix}_supfam.gff
+       cat ${cath_funfam_gff} | sed ${sed} > ${annodir}/${prefix}_cath_funfam.gff
+       cat ${ko_ec_gff} | sed ${sed} > ${annodir}/${prefix}_ko_ec.gff
+       cat ${stats_tsv} | sed ${sed} > ${annodir}/${prefix}_stats.tsv
+       cat ${stats_json} | sed ${sed} > ${annodir}/${prefix}_stats.json
+       nmdc gff2json ${annodir}/${prefix}_functional_annotation.gff -of features.json -oa annotations.json -ai ${informed_by}
 
-       /scripts/generate_objects.py --type "annotation" --id ${informed_by} \
+       /scripts/generate_objects.py --type "nmdc:annotationActivity" --id ${informed_by} \
+             --name "Assembly Activity for ${proj}" --part ${proj} \
              --start ${start} --end $end \
-             --resource '${resource}' --url ${url_base} --giturl ${git_url} \
-             --inputs ${fasta} \
+             --resource '${resource}' --url ${url_root}${proj}/annotation/ --giturl ${git_url} \
+             --inputs ${assemdir}/${prefix}_contigs.fna \
              --outputs \
-             ${proteins_faa} 'Protein FAA' \
-             ${structural_gff} 'Structural annotation GFF file' \
-             ${functional_gff} 'Functional annotation GFF file' \
-             ${ko_tsv} 'KO TSV file' \
-             ${ec_tsv} 'EC TSV file' \
-             ${cog_gff} 'COG GFF file' \
-             ${pfam_gff} 'PFAM GFF file' \
-             ${tigrfam_gff} 'TigrFam GFF file' \
-             ${smart_gff} 'SMART GFF file' \
-             ${supfam_gff} 'SuperFam GFF file' \
-             ${cath_funfam_gff} 'Cath FunFam GFF file' \
-             ${ko_ec_gff} 'KO_EC GFF file'
-
-       cp ${proteins_faa} ${structural_gff} ${functional_gff} \
-          ${ko_tsv} ${ec_tsv} ${cog_gff} ${pfam_gff} ${tigrfam_gff} \
-          ${smart_gff} ${supfam_gff} ${cath_funfam_gff} ${ko_ec_gff} \
-          ${stats_tsv} ${stats_json} \
-          ${annodir}/
+             ${annodir}/${prefix}_proteins.faa 'Protein FAA' \
+             ${annodir}/${prefix}_structural_annotation.gff 'Structural annotation GFF file' \
+             ${annodir}/${prefix}_functional_annotation.gff 'Functional annotation GFF file' \
+             ${annodir}/${prefix}_ko.tsv 'KO TSV file' \
+             ${annodir}/${prefix}_ec.tsv 'EC TSV file' \
+             ${annodir}/${prefix}_cog.gff 'COG GFF file' \
+             ${annodir}/${prefix}_pfam.gff 'PFAM GFF file' \
+             ${annodir}/${prefix}_tigrfam.gff 'TigrFam GFF file' \
+             ${annodir}/${prefix}_smart.gff 'SMART GFF file' \
+             ${annodir}/${prefix}_supfam.gff 'SuperFam GFF file' \
+             ${annodir}/${prefix}_cath_funfam.gff 'Cath FunFam GFF file' \
+             ${annodir}/${prefix}_ko_ec.gff 'KO_EC GFF file'
        cp features.json annotations.json activity.json data_objects.json ${annodir}/
 
+       # MAGS
+       mkdir -p ${magsdir}
+       cat ${lowdepth} | sed ${sed} > ${magsdir}/${prefix}_bins.lowDepth.fa
+       cat ${short} | sed ${sed} > ${magsdir}/${prefix}_bins.tooShort.fa
+       cat ${unbinned} | sed ${sed} > ${magsdir}/${prefix}_bins.unbinned.fa
+       cp ${checkm} ${magsdir}/${prefix}_checkm_qa.out
+       #TODO: Check naming
+       mkdir -p hqmq
+       if [ ${n_hqmq} -gt 0 ] ; then
+           (cd hqmq && cp ${sep=" " hqmq_bin_fasta_files} .)
+           (cd hqmq && sed -i ${sed} *.fa && zip ../${prefix}_hqmq_bin.zip *.fa)
+       else
+           (cd hqmq && touch no_hqmq_mags.txt)
+       fi
+       cp ${prefix}_hqmq_bin.zip ${magsdir}
 
-       /scripts/generate_objects.py --type "MAGs" --id ${informed_by} \
+       mkdir meta
+       (cd meta && cp ${sep=" " bin_fasta_files} .)
+       (cd meta && sed -i ${sed} *.fa && zip ../${prefix}_metabat_bin.zip *.fa)
+       cp ${prefix}_metabat_bin.zip ${magsdir}
+
+       /scripts/generate_objects.py --type "nmdc:magsActivity" --id ${informed_by} \
+             --name "Assembly Activity for ${proj}" --part ${proj} \
              --start ${start} --end $end \
-             --resource '${resource}' --url ${url_base} --giturl ${git_url} \
-             --inputs ${fasta} ${bam} ${functional_gff} \
+             --resource '${resource}' --url ${url_root}${proj}/MAGs/ --giturl ${git_url} \
+             --inputs ${assemdir}/${prefix}_contigs.fna \
+                      ${assemdir}/${prefix}_pairedMapped_sorted.bam \
+                      ${annodir}/${prefix}_functional_annotation.gff \
              --outputs \
-             ${short} "tooShort (< 3kb) filtered contigs fasta file by metaBat2" \
-             ${lowdepth} "lowDepth (mean cov <1 )  filtered contigs fasta file by metabat2" \
-             ${unbinned} "unbinned fasta file from metabat2" \
-             ${checkm} "metabat2 bin checkm quality assessment result"
+             ${magsdir}/${prefix}_bins.lowDepth.fa "lowDepth (mean cov <1 )  filtered contigs fasta file by metabat2" \
+             ${magsdir}/${prefix}_bins.tooShort.fa "tooShort (< 3kb) filtered contigs fasta file by metaBat2" \
+             ${magsdir}/${prefix}_bins.unbinned.fa "unbinned fasta file from metabat2" \
+             ${magsdir}/${prefix}_checkm_qa.out "metabat2 bin checkm quality assessment result" \
+             ${magsdir}/${prefix}_hqmq_bin.zip "high-quality and medium-quality bins" \
+             ${magsdir}${prefix}_metabat_bin.zip "metabat2 bins"
 #             "gtdbtk.bac120.summary.tsv" "gtdbtk bacterial assignment result summary table" \
 #             "gtdbtk.ar122.summary.tsv" "gtdbtk archaea assignment result summary table" \
        cp activity.json data_objects.json ${magsdir}/
 
-       /scripts/generate_objects.py --type "ReadbasedAnalysis" --id ${informed_by} \
+       #Readbased Analysis
+       mkdir -p ${rbadir}
+       cp ${gottcha2_report_tsv} ${rbadir}/${prefix}_gottcha2_report.tsv
+       cp ${gottcha2_full_tsv} ${rbadir}/${prefix}_gottcha2_report_full.tsv
+       cp ${gottcha2_krona_html} ${rbadir}/${prefix}_gottcha2_krona.html
+
+       cp ${centrifuge_classification_tsv} ${rbadir}/${prefix}_centrifuge_classification.tsv
+       cp ${centrifuge_report_tsv} ${rbadir}/${prefix}_centrifuge_report.tsv
+       cp ${centrifuge_krona_html} ${rbadir}/${prefix}_centrifuge_krona.html
+          
+       cp ${kraken2_classification_tsv} ${rbadir}/${prefix}_kraken2_classification.tsv
+       cp ${kraken2_report_tsv} ${rbadir}/${prefix}_kraken2_report.tsv
+       cp ${kraken2_krona_html} ${rbadir}/${prefix}_kraken2_krona.html
+ 
+       /scripts/generate_objects.py --type "nmdc:ReadbasedAnalysisActivity" --id ${informed_by} \
+             --name "Assembly Activity for ${proj}" --part ${proj} \
              --start ${start} --end $end \
-             --resource '${resource}' --url ${url_base} --giturl ${git_url} \
-             --inputs ${filtered} \
+             --resource '${resource}' --url ${url_root}${proj}/ReadbasedAnalysis/ --giturl ${git_url} \
+             --inputs ${qadir}/${prefix}_filtered.fastq.gz \
              --outputs \
-             ${gottcha2_report_tsv} "Gottcha2 TSV report" \
-             ${gottcha2_full_tsv} "Gottcha2 full TSV report" \
-             ${gottcha2_krona_html} "Gottcha2 Krona HTML report" \
-             ${centrifuge_classification_tsv} "Centrifuge classification TSV report" \
-             ${centrifuge_report_tsv} "Centrifuge TSV report" \
-             ${centrifuge_krona_html} "Centrifuge Krona HTML report" \
-             ${kraken2_classification_tsv} "Kraken classification TSV report" \
-             ${kraken2_report_tsv} "Kraken2 TSV report" \
-             ${kraken2_krona_html} "Kraken2 Krona HTML report"
+             ${rbadir}/${prefix}_gottcha2_report.tsv "Gottcha2 TSV report" \
+             ${rbadir}/${prefix}_gottcha2_report_full.tsv "Gottcha2 full TSV report" \
+             ${rbadir}/${prefix}_gottcha2_krona.html "Gottcha2 Krona HTML report" \
+             ${rbadir}/${prefix}_centrifuge_classification.tsv "Centrifuge classification TSV report" \
+             ${rbadir}/${prefix}_centrifuge_report.tsv "Centrifuge TSV report" \
+             ${rbadir}/${prefix}_centrifuge_krona.html "Centrifuge Krona HTML report" \
+             ${rbadir}/${prefix}_kraken2_classification.tsv "Kraken classification TSV report" \
+             ${rbadir}/${prefix}_kraken2_report.tsv "Kraken2 TSV report" \
+             ${rbadir}/${prefix}_kraken2_krona.html "Kraken2 Krona HTML report"
        cp activity.json data_objects.json ${rbadir}/
+
+       /scripts/generate_objects.py --type "nmdc:metagenomeAnalysisActivity" --id ${informed_by} \
+             --name "Metagenome Analysis Activity for ${proj}" --part ${proj} \
+             --activityid=${proj} \
+             --start ${start} --end $end \
+             --resource '${resource}' --url ${url_root}${proj}/ --giturl ${git_url}
+       cp activity.json ${outdir}/
    }
 
    runtime {
