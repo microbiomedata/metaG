@@ -1,4 +1,3 @@
-TWL=test-small.wdl
 BUNDLE=bundle.zip
 CROMWELL_JAR=~/bin/cromwell-54.jar
 WOMTOOL_JAR=~/bin/womtool-54.jar
@@ -20,16 +19,7 @@ prep:
 	(cd subworkflows && ln -s */*wdl .)
 
 validate:
-	java -jar $(WOMTOOL_JAR) validate $(TWL)
-
-test:
-	echo "use submit"
-
-submit:
-	java -jar $(CROMWELL_JAR) submit -h $(CROMWELL_URL) $(TWL) -p $(BUNDLE)
-
-validatemeta:
 	java -jar $(WOMTOOL_JAR) validate $(METAG_FULL_WORKFLOW) -i $(METAG_INPUT)
 
-metag:
+test:
 	java -jar $(CROMWELL_JAR) submit -h $(CROMWELL_URL) $(METAG_FULL_WORKFLOW) -p $(BUNDLE) -i $(METAG_INPUT) -l $(METAG_LABELS)
