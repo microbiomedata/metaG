@@ -244,10 +244,17 @@ task finish {
    String rbadir="${outdir}/ReadbasedAnalysis/"
    String orig_prefix="scaffold"
    String sed="s/${orig_prefix}_/${proj}_/"
+   String sedg="s/${orig_prefix}_/${proj}_/g"
 
    command{
        set -e
        end=`date --iso-8601=seconds`
+       # cleanup any previous runs
+       rm -rf ${qadir}
+       rm -rf ${assemdir}
+       rm -rf ${annodir}
+       rm -rf ${magsdir}
+       rm -rf ${rbadir}
 
        # Generate QA objects
        mkdir -p ${qadir}
@@ -275,10 +282,10 @@ task finish {
        cat ${agp} | sed ${sed} > ${assemdir}/${prefix}_assembly.agp
        # TODO: Fix up IDs
        ## Bam file     
-       samtools view -h ${bam} | sed 's/testMG_/newName_/g' | \
+       samtools view -h ${bam} | sed ${sedg} | \
           samtools view -hb -o ${assemdir}/${prefix}_pairedMapped_sorted.bam
        ## Sam.gz file
-       samtools view -h ${samgz} | sed 's/testMG_/newName_/g' | \
+       samtools view -h ${samgz} | sed ${sedg} | \
           gzip -c - > ${assemdir}/${prefix}_pairedMapped.sam.gz
 
        /scripts/generate_objects.py --type "nmdc:assemblyActivity" --id ${informed_by} \
@@ -346,6 +353,7 @@ task finish {
            (cd hqmq && sed -i ${sed} *.fa && zip ../${prefix}_hqmq_bin.zip *.fa)
        else
            (cd hqmq && touch no_hqmq_mags.txt)
+           (cd hqmq && zip ../${prefix}_hqmq_bin.zip *.txt)
        fi
        cp ${prefix}_hqmq_bin.zip ${magsdir}
 
