@@ -26,4 +26,5 @@ to_json.wdl
 prodigal.wdl
 annotation.wdl
 attic
+subworkflows
 bundle.zip
