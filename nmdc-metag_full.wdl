@@ -263,7 +263,7 @@ task finish {
        /scripts/rqcstats.py ${filtered_stats} > stats.json
 
        /scripts/generate_objects.py --type "nmdc:ReadQCAnalysisActivity" --id ${informed_by} \
-             --name "QA Activity for ${proj}" --part ${proj} \
+             --name "Read QC Activity for ${proj}" --part ${proj} \
              --start ${start} --end $end \
              --resource '${resource}' --url ${url_root}${proj}/qa/ --giturl ${git_url} \
              --extra stats.json \
@@ -321,7 +321,7 @@ task finish {
        nmdc gff2json ${annodir}/${prefix}_functional_annotation.gff -of features.json -oa annotations.json -ai ${informed_by}
 
        /scripts/generate_objects.py --type "nmdc:MetagenomeAnnotationActivity" --id ${informed_by} \
-             --name "Assembly Activity for ${proj}" --part ${proj} \
+             --name "Annotation Activity for ${proj}" --part ${proj} \
              --start ${start} --end $end \
              --resource '${resource}' --url ${url_root}${proj}/annotation/ --giturl ${git_url} \
              --inputs ${assemdir}/${prefix}_contigs.fna \
@@ -363,7 +363,7 @@ task finish {
        cp ${prefix}_metabat_bin.zip ${magsdir}
 
        /scripts/generate_objects.py --type "nmdc:MAGsAnalysisActivity" --id ${informed_by} \
-             --name "Assembly Activity for ${proj}" --part ${proj} \
+             --name "MAGs Analysis Activity for ${proj}" --part ${proj} \
              --start ${start} --end $end \
              --resource '${resource}' --url ${url_root}${proj}/MAGs/ --giturl ${git_url} \
              --inputs ${assemdir}/${prefix}_contigs.fna \
@@ -395,7 +395,7 @@ task finish {
        cp ${kraken2_krona_html} ${rbadir}/${prefix}_kraken2_krona.html
  
        /scripts/generate_objects.py --type "nmdc:ReadbasedAnalysisActivity" --id ${informed_by} \
-             --name "Assembly Activity for ${proj}" --part ${proj} \
+             --name "Readbased Analysis Activity for ${proj}" --part ${proj} \
              --start ${start} --end $end \
              --resource '${resource}' --url ${url_root}${proj}/ReadbasedAnalysis/ --giturl ${git_url} \
              --inputs ${qadir}/${prefix}_filtered.fastq.gz \
@@ -411,6 +411,7 @@ task finish {
              ${rbadir}/${prefix}_kraken2_krona.html "Kraken2 Krona HTML report"
        cp activity.json data_objects.json ${rbadir}/
 
+       # Top-level Container
        /scripts/generate_objects.py --type "nmdc:MetagenomeAnalysisActivity" --id ${informed_by} \
              --name "Metagenome Analysis Activity for ${proj}" \
              --activityid=${proj} \
