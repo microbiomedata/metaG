@@ -243,8 +243,7 @@ task finish {
    String magsdir="${outdir}/MAGs/"
    String rbadir="${outdir}/ReadbasedAnalysis/"
    String orig_prefix="scaffold"
-   String sed="s/${orig_prefix}_/${proj}_/"
-   String sedg="s/${orig_prefix}_/${proj}_/g"
+   String sed="s/${orig_prefix}_/${proj}_/g"
 
    command{
        set -e
@@ -262,7 +261,8 @@ task finish {
        cp ${filtered_stats} ${qadir}/${prefix}_filterStats.txt
        cp ${filtered_stats2} ${qadir}/${prefix}_filterStats2.txt
        /scripts/rqcstats.py ${filtered_stats} > stats.json
-       /scripts/generate_objects.py --type "nmdc:qaActivity" --id ${informed_by} \
+
+       /scripts/generate_objects.py --type "nmdc:ReadQCAnalysisActivity" --id ${informed_by} \
              --name "QA Activity for ${proj}" --part ${proj} \
              --start ${start} --end $end \
              --resource '${resource}' --url ${url_root}${proj}/qa/ --giturl ${git_url} \
@@ -282,13 +282,13 @@ task finish {
        cat ${agp} | sed ${sed} > ${assemdir}/${prefix}_assembly.agp
        # TODO: Fix up IDs
        ## Bam file     
-       samtools view -h ${bam} | sed ${sedg} | \
+       samtools view -h ${bam} | sed ${sed} | \
           samtools view -hb -o ${assemdir}/${prefix}_pairedMapped_sorted.bam
        ## Sam.gz file
-       samtools view -h ${samgz} | sed ${sedg} | \
+       samtools view -h ${samgz} | sed ${sed} | \
           gzip -c - > ${assemdir}/${prefix}_pairedMapped.sam.gz
 
-       /scripts/generate_objects.py --type "nmdc:assemblyActivity" --id ${informed_by} \
+       /scripts/generate_objects.py --type "nmdc:MetagenomeAssembly" --id ${informed_by} \
              --name "Assembly Activity for ${proj}" --part ${proj} \
              --start ${start} --end $end \
              --resource '${resource}' --url ${url_root}${proj}/assembly/ --giturl ${git_url} \
@@ -320,7 +320,7 @@ task finish {
        cat ${stats_json} | sed ${sed} > ${annodir}/${prefix}_stats.json
        nmdc gff2json ${annodir}/${prefix}_functional_annotation.gff -of features.json -oa annotations.json -ai ${informed_by}
 
-       /scripts/generate_objects.py --type "nmdc:annotationActivity" --id ${informed_by} \
+       /scripts/generate_objects.py --type "nmdc:MetagenomeAnnotationActivity" --id ${informed_by} \
              --name "Assembly Activity for ${proj}" --part ${proj} \
              --start ${start} --end $end \
              --resource '${resource}' --url ${url_root}${proj}/annotation/ --giturl ${git_url} \
@@ -362,7 +362,7 @@ task finish {
        (cd meta && sed -i ${sed} *.fa && zip ../${prefix}_metabat_bin.zip *.fa)
        cp ${prefix}_metabat_bin.zip ${magsdir}
 
-       /scripts/generate_objects.py --type "nmdc:magsActivity" --id ${informed_by} \
+       /scripts/generate_objects.py --type "nmdc:MAGsAnalysisActivity" --id ${informed_by} \
              --name "Assembly Activity for ${proj}" --part ${proj} \
              --start ${start} --end $end \
              --resource '${resource}' --url ${url_root}${proj}/MAGs/ --giturl ${git_url} \
@@ -411,8 +411,8 @@ task finish {
              ${rbadir}/${prefix}_kraken2_krona.html "Kraken2 Krona HTML report"
        cp activity.json data_objects.json ${rbadir}/
 
-       /scripts/generate_objects.py --type "nmdc:metagenomeAnalysisActivity" --id ${informed_by} \
-             --name "Metagenome Analysis Activity for ${proj}" --part ${proj} \
+       /scripts/generate_objects.py --type "nmdc:MetagenomeAnalysisActivity" --id ${informed_by} \
+             --name "Metagenome Analysis Activity for ${proj}" \
              --activityid=${proj} \
              --start ${start} --end $end \
              --resource '${resource}' --url ${url_root}${proj}/ --giturl ${git_url}
