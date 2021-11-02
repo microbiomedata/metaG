@@ -16,6 +16,7 @@ workflow nmdc_metag {
   String?  git_url="https://github.com/microbiomedata/mg_annotation/releases/tag/0.1"
   String?  url_root="https://data.microbiomedata.org/data/"
   String  url_base="${url_root}${proj}/annotation/"
+  Boolean paired = true
 
   call stage {
     input: container=container,
@@ -28,7 +29,7 @@ workflow nmdc_metag {
            memory="60G"
   }
   call assembly.jgi_metaASM as asm {
-    input: input_file=qc.filtered
+    input: input_file=qc.filtered, paired=paired
   }
 
   call awf.annotation {
@@ -36,10 +37,12 @@ workflow nmdc_metag {
            imgap_input_fasta=asm.contig,
            database_location=database
   }
-  call split_interleaved_fastq {
-    input:
-      reads=qc.filtered[0],
-      container="microbiomedata/bbtools:38.90"
+  if (paired){
+    call split_interleaved_fastq {
+      input:
+        reads=qc.filtered[0],
+        container="microbiomedata/bbtools:38.94"
+    }
   }
 
   call rba.ReadbasedAnalysis {
@@ -48,8 +51,8 @@ workflow nmdc_metag {
                   "kraken2": "/refdata/kraken2",
                   "centrifuge": "/refdata/centrifuge/p_compressed"
                 },
-           reads = split_interleaved_fastq.outFastq,
-           paired = true,
+           reads = if paired then split_interleaved_fastq.outFastq else qc.filtered,
+           paired = paired,
            prefix = "nmdc_",
            cpu = 4
   }
@@ -61,12 +64,12 @@ workflow nmdc_metag {
       sam_file=asm.bam,
       gff_file=annotation.functional_gff,
       gtdbtk_database="/refdata/GTDBTK_DB",
-      container="microbiomedata/nmdc_mbin:0.1.2"
+      container="microbiomedata/nmdc_mbin:0.1.3"
   }
 
 
   call finish {
-    input: container="microbiomedata/workflowmeta:1.0.4",
+    input: container="microbiomedata/workflowmeta:1.0.5.1",
            proj=proj,
            start=stage.start,
            resource=resource,
@@ -113,6 +116,7 @@ workflow nmdc_metag {
            checkm=nmdc_mags.checkm,
            hqmq_bin_fasta_files=nmdc_mags.hqmq_bin_fasta_files,
            bin_fasta_files=nmdc_mags.bin_fasta_files,
+           mags_stats_json=nmdc_mags.stats_json,
            outdir=outdir
   }
 
@@ -222,9 +226,10 @@ task finish {
    File short
    File lowdepth
    File unbinned
-   File checkm
+   File? checkm
    Array[File] hqmq_bin_fasta_files
    Array[File] bin_fasta_files
+   File mags_stats_json
    Int n_hqmq=length(hqmq_bin_fasta_files)
    Int n_bin=length(bin_fasta_files)
    File? gottcha2_report_tsv
@@ -260,7 +265,11 @@ task finish {
        cp ${filtered} ${qadir}/${prefix}_filtered.fastq.gz
        cp ${filtered_stats} ${qadir}/${prefix}_filterStats.txt
        cp ${filtered_stats2} ${qadir}/${prefix}_filterStats2.txt
+
+       # Generate stats but rename some fields untilt the script is
+       # fixed.
        /scripts/rqcstats.py ${filtered_stats} > stats.json
+       cp stats.json ${qadir}/${prefix}_qa_stats.json
 
        /scripts/generate_objects.py --type "nmdc:ReadQCAnalysisActivity" --id ${informed_by} \
              --name "Read QC Activity for ${proj}" --part ${proj} \
@@ -278,7 +287,6 @@ task finish {
        cat ${fasta} | sed ${sed} > ${assemdir}/${prefix}_contigs.fna
        cat ${scaffold} | sed ${sed} > ${assemdir}/${prefix}_scaffolds.fna
        cat ${covstats} | sed ${sed} > ${assemdir}/${prefix}_covstats.txt
-       cp ${asmstats} ${assemdir}/${prefix}_stats.json
        cat ${agp} | sed ${sed} > ${assemdir}/${prefix}_assembly.agp
        # TODO: Fix up IDs
        ## Bam file     
@@ -288,11 +296,15 @@ task finish {
        samtools view -h ${samgz} | sed ${sed} | \
           gzip -c - > ${assemdir}/${prefix}_pairedMapped.sam.gz
 
+       # Remove an extra field from the stats
+       cat ${asmstats} |jq 'del(.filename)' > stats.json
+       cp stats.json ${assemdir}/${prefix}_asm_stats.json
+
        /scripts/generate_objects.py --type "nmdc:MetagenomeAssembly" --id ${informed_by} \
              --name "Assembly Activity for ${proj}" --part ${proj} \
              --start ${start} --end $end \
              --resource '${resource}' --url ${url_root}${proj}/assembly/ --giturl ${git_url} \
-             --extra ${asmstats} \
+             --extra stats.json \
              --inputs ${qadir}/${prefix}_filtered.fastq.gz \
              --outputs \
              ${assemdir}/${prefix}_contigs.fna 'Assembled contigs fasta' \
@@ -345,8 +357,14 @@ task finish {
        cat ${lowdepth} | sed ${sed} > ${magsdir}/${prefix}_bins.lowDepth.fa
        cat ${short} | sed ${sed} > ${magsdir}/${prefix}_bins.tooShort.fa
        cat ${unbinned} | sed ${sed} > ${magsdir}/${prefix}_bins.unbinned.fa
-       cp ${checkm} ${magsdir}/${prefix}_checkm_qa.out
-       #TODO: Check naming
+       ${ if defined(checkm) then 
+          "cp " + checkm + " " + magsdir + "/"  + prefix + "_checkm_qa.out"
+          else
+          "echo \"no mags\" > " + magsdir + "/"  + prefix + "_checkm_qa.out"
+       }
+       cp ${mags_stats_json} ${magsdir}/${prefix}_mags_stats.json
+
+       # Fix up the bin names 
        mkdir -p hqmq
        if [ ${n_hqmq} -gt 0 ] ; then
            (cd hqmq && cp ${sep=" " hqmq_bin_fasta_files} .)
@@ -358,24 +376,26 @@ task finish {
        cp ${prefix}_hqmq_bin.zip ${magsdir}
 
        mkdir meta
-       (cd meta && cp ${sep=" " bin_fasta_files} .)
-       (cd meta && sed -i ${sed} *.fa && zip ../${prefix}_metabat_bin.zip *.fa)
+       if [ ${n_bin} -gt 0 ] ; then
+           (cd meta && cp ${sep=" " bin_fasta_files} .)
+           (cd meta && sed -i ${sed} *.fa && zip ../${prefix}_metabat_bin.zip *.fa)
+       else
+           (cd meta && touch no_mags.txt)
+           (cd meta && zip ../${prefix}_metabat_bin.zip *.txt)
+       fi
        cp ${prefix}_metabat_bin.zip ${magsdir}
 
        /scripts/generate_objects.py --type "nmdc:MAGsAnalysisActivity" --id ${informed_by} \
              --name "MAGs Analysis Activity for ${proj}" --part ${proj} \
              --start ${start} --end $end \
              --resource '${resource}' --url ${url_root}${proj}/MAGs/ --giturl ${git_url} \
+             --extra ${mags_stats_json} \
              --inputs ${assemdir}/${prefix}_contigs.fna \
                       ${assemdir}/${prefix}_pairedMapped_sorted.bam \
                       ${annodir}/${prefix}_functional_annotation.gff \
              --outputs \
-             ${magsdir}/${prefix}_bins.lowDepth.fa "lowDepth (mean cov <1 )  filtered contigs fasta file by metabat2" \
-             ${magsdir}/${prefix}_bins.tooShort.fa "tooShort (< 3kb) filtered contigs fasta file by metaBat2" \
-             ${magsdir}/${prefix}_bins.unbinned.fa "unbinned fasta file from metabat2" \
              ${magsdir}/${prefix}_checkm_qa.out "metabat2 bin checkm quality assessment result" \
              ${magsdir}/${prefix}_hqmq_bin.zip "high-quality and medium-quality bins" \
-             ${magsdir}${prefix}_metabat_bin.zip "metabat2 bins"
 #             "gtdbtk.bac120.summary.tsv" "gtdbtk bacterial assignment result summary table" \
 #             "gtdbtk.ar122.summary.tsv" "gtdbtk archaea assignment result summary table" \
        cp activity.json data_objects.json ${magsdir}/
@@ -394,8 +414,8 @@ task finish {
        cp ${kraken2_report_tsv} ${rbadir}/${prefix}_kraken2_report.tsv
        cp ${kraken2_krona_html} ${rbadir}/${prefix}_kraken2_krona.html
  
-       /scripts/generate_objects.py --type "nmdc:ReadbasedAnalysisActivity" --id ${informed_by} \
-             --name "Readbased Analysis Activity for ${proj}" --part ${proj} \
+       /scripts/generate_objects.py --type "nmdc:ReadBasedAnalysisActivity" --id ${informed_by} \
+             --name "ReadBased Analysis Activity for ${proj}" --part ${proj} \
              --start ${start} --end $end \
              --resource '${resource}' --url ${url_root}${proj}/ReadbasedAnalysis/ --giturl ${git_url} \
              --inputs ${qadir}/${prefix}_filtered.fastq.gz \
@@ -412,8 +432,8 @@ task finish {
        cp activity.json data_objects.json ${rbadir}/
 
        # Top-level Container
-       /scripts/generate_objects.py --type "nmdc:MetagenomeAnalysisActivity" --id ${informed_by} \
-             --name "Metagenome Analysis Activity for ${proj}" \
+       /scripts/generate_objects.py --type "nmdc:MetagenomeAnalysis" --id ${informed_by} \
+             --name "Metagenome Analysis for ${proj}" \
              --activityid=${proj} \
              --start ${start} --end $end \
              --resource '${resource}' --url ${url_root}${proj}/ --giturl ${git_url}
