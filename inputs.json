@@ -1,6 +1,7 @@
 {
   "nmdc_metag.proj": "nmdc:mga0xxxx",
   "nmdc_metag.input_file": "/global/cfs/cdirs/m3408/ficus/drop/11574.7.212434.CCAAGCA-TTGCTTG.fastq.gz",
+  "nmdc_metag.paired": true,
   "nmdc_metag.git_url": "https://github.com/microbiomedata/mg_annotation/releases/tag/0.1",
   "nmdc_metag.outdir": "/global/cfs/cdirs/m3408/ficus/pipeline_products/nmdc:mgaxxxx",
   "nmdc_metag.informed_by": "gold:GpXXXXXXX",
