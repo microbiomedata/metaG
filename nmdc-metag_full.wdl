@@ -25,7 +25,7 @@ workflow nmdc_metag {
   # Estimate RQC runtime at an hour per compress GB
   call rqc.jgi_rqcfilter as qc {
     input: input_files=[stage.read],
-           threads=16,
+           threads=8,
            memory="60G"
   }
   call assembly.jgi_metaASM as asm {
@@ -41,7 +41,7 @@ workflow nmdc_metag {
     call split_interleaved_fastq {
       input:
         reads=qc.filtered[0],
-        container="microbiomedata/bbtools:38.94"
+        container="microbiomedata/bbtools:38.96"
     }
   }
 
@@ -64,7 +64,7 @@ workflow nmdc_metag {
       sam_file=asm.bam,
       gff_file=annotation.functional_gff,
       gtdbtk_database="/refdata/GTDBTK_DB",
-      container="microbiomedata/nmdc_mbin:0.1.3"
+      container="microbiomedata/nmdc_mbin:0.1.6"
   }
 
 
@@ -98,6 +98,16 @@ workflow nmdc_metag {
            smart_gff=annotation.smart_gff,
            supfam_gff=annotation.supfam_gff,
            cath_funfam_gff=annotation.cath_funfam_gff,
+           crt_gff=annotation.crt_gff,
+           genemark_gff=annotation.genemark_gff,
+           prodigal_gff=annotation.prodigal_gff,
+           trna_gff=annotation.trna_gff,
+           misc_bind_misc_feature_regulatory_gff=annotation.misc_bind_misc_feature_regulatory_gff,
+           rrna_gff=annotation.rrna_gff,
+           ncrna_tmrna_gff=annotation.ncrna_tmrna_gff,
+           crt_crisprs=annotation.crt_crisprs,
+           product_names_tsv=annotation.product_names_tsv,
+           gene_phylogeny_tsv=annotation.gene_phylogeny_tsv,
            ko_ec_gff=annotation.ko_ec_gff,
            stats_tsv=annotation.stats_tsv,
            stats_json=annotation.stats_json,
@@ -117,6 +127,7 @@ workflow nmdc_metag {
            hqmq_bin_fasta_files=nmdc_mags.hqmq_bin_fasta_files,
            bin_fasta_files=nmdc_mags.bin_fasta_files,
            mags_stats_json=nmdc_mags.stats_json,
+           mags_stats_tsv=nmdc_mags.stats_tsv,
            outdir=outdir
   }
 
@@ -190,14 +201,14 @@ task finish {
    String git_url
    File read
    File filtered
-   File filtered_stats
-   File filtered_stats2
+   File? filtered_stats
+   File? filtered_stats2
    File fasta
    File scaffold
-   File agp
+   File? agp
    File bam
-   File samgz
-   File covstats
+   File? samgz
+   File? covstats
    File asmstats
    File proteins_faa
    File structural_gff
@@ -210,26 +221,34 @@ task finish {
    File smart_gff
    File supfam_gff
    File cath_funfam_gff
+   File crt_gff
+   File genemark_gff
+   File prodigal_gff
+   File trna_gff
+   File misc_bind_misc_feature_regulatory_gff
+   File rrna_gff
+   File ncrna_tmrna_gff
    File ko_ec_gff
-   File stats_tsv
+   File? stats_tsv
    File stats_json
-# Future
-#    File gene_phylogeny_tsv
+# Future is now
+   File gene_phylogeny_tsv
 #    File proteins_cog_domtblout
 #    File proteins_pfam_domtblout
 #    File proteins_tigrfam_domtblout
 #    File proteins_smart_domtblout
 #    File proteins_supfam_domtblout
 #    File proteins_cath_funfam_domtblout
-#    File product_names_tsv
-#    File crt_crisprs
-   File short
-   File lowdepth
-   File unbinned
+   File product_names_tsv
+   File crt_crisprs
+   File? short
+   File? lowdepth
+   File? unbinned
    File? checkm
    Array[File] hqmq_bin_fasta_files
    Array[File] bin_fasta_files
-   File mags_stats_json
+   File? mags_stats_json
+   File? mags_stats_tsv
    Int n_hqmq=length(hqmq_bin_fasta_files)
    Int n_bin=length(bin_fasta_files)
    File? gottcha2_report_tsv
@@ -249,8 +268,10 @@ task finish {
    String rbadir="${outdir}/ReadbasedAnalysis/"
    String orig_prefix="scaffold"
    String sed="s/${orig_prefix}_/${proj}_/g"
+   String sed_bin="s/bins./${prefix}_/g"
+   String dollar ="$"
 
-   command{
+   command <<<
        set -e
        end=`date --iso-8601=seconds`
        # cleanup any previous runs
@@ -327,6 +348,17 @@ task finish {
        cat ${smart_gff} | sed ${sed} > ${annodir}/${prefix}_smart.gff
        cat ${supfam_gff} | sed ${sed} > ${annodir}/${prefix}_supfam.gff
        cat ${cath_funfam_gff} | sed ${sed} > ${annodir}/${prefix}_cath_funfam.gff
+       cat ${crt_gff} | sed ${sed} > ${annodir}/${prefix}_crt.gff
+       cat ${genemark_gff} | sed ${sed} > ${annodir}/${prefix}_genemark.gff
+       cat ${prodigal_gff} | sed ${sed} > ${annodir}/${prefix}_prodigal.gff
+       cat ${trna_gff} | sed ${sed} > ${annodir}/${prefix}_trna.gff
+       cat ${misc_bind_misc_feature_regulatory_gff} | sed ${sed} > ${annodir}/${prefix}_rfam_misc_bind_misc_feature_regulatory.gff
+       cat ${rrna_gff} | sed ${sed} > ${annodir}/${prefix}_rfam_rrna.gff
+       cat ${ncrna_tmrna_gff} | sed ${sed} > ${annodir}/${prefix}_rfam_ncrna_tmrna.gff
+       cat ${crt_crisprs} | sed ${sed} > ${annodir}/${prefix}_crt.crisprs
+       cat ${product_names_tsv} | sed ${sed} > ${annodir}/${prefix}_product_names.tsv
+       cat ${gene_phylogeny_tsv} | sed ${sed} > ${annodir}/${prefix}_gene_phylogeny.tsv
+
        cat ${ko_ec_gff} | sed ${sed} > ${annodir}/${prefix}_ko_ec.gff
        cat ${stats_tsv} | sed ${sed} > ${annodir}/${prefix}_stats.tsv
        cat ${stats_json} | sed ${sed} > ${annodir}/${prefix}_stats.json
@@ -349,7 +381,17 @@ task finish {
              ${annodir}/${prefix}_smart.gff 'SMART GFF file' \
              ${annodir}/${prefix}_supfam.gff 'SuperFam GFF file' \
              ${annodir}/${prefix}_cath_funfam.gff 'Cath FunFam GFF file' \
-             ${annodir}/${prefix}_ko_ec.gff 'KO_EC GFF file'
+             ${annodir}/${prefix}_crt.gff 'CRT GFF file' \
+             ${annodir}/${prefix}_genemark.gff 'Genemark GFF file' \
+             ${annodir}/${prefix}_prodigal.gff 'Prodigal GFF file' \
+             ${annodir}/${prefix}_trna.gff 'tRNA GFF File' \
+             ${annodir}/${prefix}_rfam_misc_bind_misc_feature_regulatory.gff 'RFAM misc binding GFF file' \
+             ${annodir}/${prefix}_rfam_rrna.gff 'RFAM rRNA GFF file' \
+             ${annodir}/${prefix}_rfam_ncrna_tmrna.gff 'RFAM rmRNA GFF file' \
+	     ${annodir}/${prefix}_crt.crisprs 'CRISPRS file' \
+	     ${annodir}/${prefix}_product_names.tsv 'Product Names tsv' \
+             ${annodir}/${prefix}_gene_phylogeny.tsv 'Gene Phylogeny tsv' \
+	     ${annodir}/${prefix}_ko_ec.gff 'KO_EC GFF file'
        cp features.json annotations.json activity.json data_objects.json ${annodir}/
 
        # MAGS
@@ -362,20 +404,42 @@ task finish {
           else
           "echo \"no mags\" > " + magsdir + "/"  + prefix + "_checkm_qa.out"
        }
-       cp ${mags_stats_json} ${magsdir}/${prefix}_mags_stats.json
+       cat ${mags_stats_json} | sed ${sed_bin} > ${magsdir}/${prefix}_mags_stats.json
+       sed -i ${sed_bin} ${magsdir}/${prefix}_checkm_qa.out
 
        # Fix up the bin names 
        mkdir -p hqmq
        if [ ${n_hqmq} -gt 0 ] ; then
            (cd hqmq && cp ${sep=" " hqmq_bin_fasta_files} .)
-           (cd hqmq && sed -i ${sed} *.fa && zip ../${prefix}_hqmq_bin.zip *.fa)
+    #      (cd hqmq && sed -i ${sed} *.fa && zip ../${prefix}_hqmq_bin.zip *.fa)
+           (cd hqmq && for binFA in *.fa; do
+                       name=${dollar}{binFA/bins./}
+                       binID=${dollar}{name/.fa/}
+                       mkdir -p ${prefix}_$binID
+                       ${ 'sed -e ' + sed_bin + ' ' + mags_stats_tsv + ' > ' +  prefix + "_$binID/mbin_datafile_" + prefix + '.txt' }
+                       grep ">" $binFA | sed -e 's/>//' | grep -f - ${annodir}/${prefix}_proteins.faa > ${prefix}_$binID/${prefix}_$binID.faa || true
+                       grep ">" $binFA | sed -e 's/>//' | grep -f - ${annodir}/${prefix}_functional_annotation.gff > ${prefix}_$binID/${prefix}_$binID.functional_annotation.gff || true
+                       grep ">" $binFA | sed -e 's/>//' | grep -f - ${annodir}/${prefix}_structural_annotation.gff > ${prefix}_$binID/${prefix}_$binID.structural_annotation.gff || true
+                       grep ">" $binFA | sed -e 's/>//' | grep -f - ${annodir}/${prefix}_cog.gff > ${prefix}_$binID/${prefix}_$binID.cog.gff || true
+                       grep ">" $binFA | sed -e 's/>//' | grep -f - ${annodir}/${prefix}_pfam.gff > ${prefix}_$binID/${prefix}_$binID.pfam.gff || true
+                       grep ">" $binFA | sed -e 's/>//' | grep -f - ${annodir}/${prefix}_tigrfam.gff > ${prefix}_$binID/${prefix}_$binID.tigrfam.gff || true
+                       grep ">" $binFA | sed -e 's/>//' | grep -f - ${annodir}/${prefix}_gene_phylogeny.tsv > ${prefix}_$binID/${prefix}_$binID.gene_phylogeny.tsv || true
+                       grep ">" $binFA | sed -e 's/>//' | grep -f - ${annodir}/${prefix}_ko.tsv > ${prefix}_$binID/${prefix}_$binID.ko.tsv || true
+                       grep ">" $binFA | sed -e 's/>//' | grep -f - ${annodir}/${prefix}_ec.tsv > ${prefix}_$binID/${prefix}_$binID.ec.tsv || true
+                       grep ">" $binFA | sed -e 's/>//' | grep -f - ${annodir}/${prefix}_product_names.tsv > ${prefix}_$binID/${prefix}_$binID.product_names.tsv || true
+                       grep ">" $binFA | sed -e 's/>//' | grep -f - ${annodir}/${prefix}_crt.crisprs > ${prefix}_$binID/${prefix}_$binID.crt.crisprs || true
+	               mv $binFA ${prefix}_$binID/${prefix}_$binID.fna
+                       zip ${prefix}_$binID.zip ${prefix}_$binID/*
+                       done
+           )
+           (cd hqmq && zip ../${prefix}_hqmq_bin.zip *.zip)  
        else
            (cd hqmq && touch no_hqmq_mags.txt)
            (cd hqmq && zip ../${prefix}_hqmq_bin.zip *.txt)
        fi
-       cp ${prefix}_hqmq_bin.zip ${magsdir}
+       cp ${prefix}_hqmq_bin.zip ${magsdir}/.
 
-       mkdir meta
+       mkdir -p meta
        if [ ${n_bin} -gt 0 ] ; then
            (cd meta && cp ${sep=" " bin_fasta_files} .)
            (cd meta && sed -i ${sed} *.fa && zip ../${prefix}_metabat_bin.zip *.fa)
@@ -383,7 +447,7 @@ task finish {
            (cd meta && touch no_mags.txt)
            (cd meta && zip ../${prefix}_metabat_bin.zip *.txt)
        fi
-       cp ${prefix}_metabat_bin.zip ${magsdir}
+       cp ${prefix}_metabat_bin.zip ${magsdir}/.
 
        /scripts/generate_objects.py --type "nmdc:MAGsAnalysisActivity" --id ${informed_by} \
              --name "MAGs Analysis Activity for ${proj}" --part ${proj} \
@@ -438,7 +502,7 @@ task finish {
              --start ${start} --end $end \
              --resource '${resource}' --url ${url_root}${proj}/ --giturl ${git_url}
        cp activity.json ${outdir}/
-   }
+   >>>
 
    runtime {
      memory: "10 GiB"
