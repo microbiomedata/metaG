@@ -404,12 +404,14 @@ task finish {
           else
           "echo \"no mags\" > " + magsdir + "/"  + prefix + "_checkm_qa.out"
        }
-       cat ${mags_stats_json} | sed ${sed_bin} > ${magsdir}/${prefix}_mags_stats.json
+       cat ${mags_stats_json} | sed -e ${sed_bin} -e ${sed} > ${magsdir}/${prefix}_mags_stats.json
+       cat ${mags_stats_tsv} | sed -e ${sed_bin} -e ${sed} > ${magsdir}/${prefix}_mags_stats.tsv
        sed -i ${sed_bin} ${magsdir}/${prefix}_checkm_qa.out
 
        # Fix up the bin names 
-	# cog pfam tigrfam need to be converted to txt (tsv) ? 
-	# add README for each bin zip? or have it in online documentation?
+       # cog pfam tigrfam need to be converted to txt (tsv) ? 
+       # add README for each bin zip? or have it in online documentation?
+
        mkdir -p hqmq
        if [ ${n_hqmq} -gt 0 ] ; then
            (cd hqmq && cp ${sep=" " hqmq_bin_fasta_files} .)
@@ -418,7 +420,8 @@ task finish {
                        name=${dollar}{binFA/bins./}
                        binID=${dollar}{name/.fa/}
                        mkdir -p ${prefix}_$binID
-                       ${ 'sed -e ' + sed_bin + ' ' + mags_stats_tsv + ' > ' +  prefix + "_$binID/mbin_datafile_" + prefix + '.txt' }
+                       sed -i ${sed} $binFA
+                       cp ${magsdir}/${prefix}_mags_stats.tsv  ${prefix}_$binID/mbin_datafile_${prefix}.txt
                        grep ">" $binFA | sed -e 's/>//' -e 's/$/_/' | grep -f - ${annodir}/${prefix}_proteins.faa > ${prefix}_$binID/${prefix}_$binID.faa || true
                        grep ">" $binFA | sed -e 's/>//' -e 's/$/_/' | grep -f - ${annodir}/${prefix}_functional_annotation.gff > ${prefix}_$binID/${prefix}_$binID.functional_annotation.gff || true
                        grep ">" $binFA | sed -e 's/>//' -e 's/$/_/' | grep -f - ${annodir}/${prefix}_structural_annotation.gff > ${prefix}_$binID/${prefix}_$binID.structural_annotation.gff || true
