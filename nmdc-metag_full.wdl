@@ -408,6 +408,8 @@ task finish {
        sed -i ${sed_bin} ${magsdir}/${prefix}_checkm_qa.out
 
        # Fix up the bin names 
+	# cog pfam tigrfam need to be converted to txt (tsv) ? 
+	# add README for each bin zip? or have it in online documentation?
        mkdir -p hqmq
        if [ ${n_hqmq} -gt 0 ] ; then
            (cd hqmq && cp ${sep=" " hqmq_bin_fasta_files} .)
@@ -417,17 +419,17 @@ task finish {
                        binID=${dollar}{name/.fa/}
                        mkdir -p ${prefix}_$binID
                        ${ 'sed -e ' + sed_bin + ' ' + mags_stats_tsv + ' > ' +  prefix + "_$binID/mbin_datafile_" + prefix + '.txt' }
-                       grep ">" $binFA | sed -e 's/>//' | grep -f - ${annodir}/${prefix}_proteins.faa > ${prefix}_$binID/${prefix}_$binID.faa || true
-                       grep ">" $binFA | sed -e 's/>//' | grep -f - ${annodir}/${prefix}_functional_annotation.gff > ${prefix}_$binID/${prefix}_$binID.functional_annotation.gff || true
-                       grep ">" $binFA | sed -e 's/>//' | grep -f - ${annodir}/${prefix}_structural_annotation.gff > ${prefix}_$binID/${prefix}_$binID.structural_annotation.gff || true
-                       grep ">" $binFA | sed -e 's/>//' | grep -f - ${annodir}/${prefix}_cog.gff > ${prefix}_$binID/${prefix}_$binID.cog.gff || true
-                       grep ">" $binFA | sed -e 's/>//' | grep -f - ${annodir}/${prefix}_pfam.gff > ${prefix}_$binID/${prefix}_$binID.pfam.gff || true
-                       grep ">" $binFA | sed -e 's/>//' | grep -f - ${annodir}/${prefix}_tigrfam.gff > ${prefix}_$binID/${prefix}_$binID.tigrfam.gff || true
-                       grep ">" $binFA | sed -e 's/>//' | grep -f - ${annodir}/${prefix}_gene_phylogeny.tsv > ${prefix}_$binID/${prefix}_$binID.gene_phylogeny.tsv || true
-                       grep ">" $binFA | sed -e 's/>//' | grep -f - ${annodir}/${prefix}_ko.tsv > ${prefix}_$binID/${prefix}_$binID.ko.tsv || true
-                       grep ">" $binFA | sed -e 's/>//' | grep -f - ${annodir}/${prefix}_ec.tsv > ${prefix}_$binID/${prefix}_$binID.ec.tsv || true
-                       grep ">" $binFA | sed -e 's/>//' | grep -f - ${annodir}/${prefix}_product_names.tsv > ${prefix}_$binID/${prefix}_$binID.product_names.tsv || true
-                       grep ">" $binFA | sed -e 's/>//' | grep -f - ${annodir}/${prefix}_crt.crisprs > ${prefix}_$binID/${prefix}_$binID.crt.crisprs || true
+                       grep ">" $binFA | sed -e 's/>//' -e 's/$/_/' | grep -f - ${annodir}/${prefix}_proteins.faa > ${prefix}_$binID/${prefix}_$binID.faa || true
+                       grep ">" $binFA | sed -e 's/>//' -e 's/$/_/' | grep -f - ${annodir}/${prefix}_functional_annotation.gff > ${prefix}_$binID/${prefix}_$binID.functional_annotation.gff || true
+                       grep ">" $binFA | sed -e 's/>//' -e 's/$/_/' | grep -f - ${annodir}/${prefix}_structural_annotation.gff > ${prefix}_$binID/${prefix}_$binID.structural_annotation.gff || true
+                       grep ">" $binFA | sed -e 's/>//' -e 's/$/_/' | grep -f - ${annodir}/${prefix}_cog.gff > ${prefix}_$binID/${prefix}_$binID.cog.gff || true
+                       grep ">" $binFA | sed -e 's/>//' -e 's/$/_/' | grep -f - ${annodir}/${prefix}_pfam.gff > ${prefix}_$binID/${prefix}_$binID.pfam.gff || true
+                       grep ">" $binFA | sed -e 's/>//' -e 's/$/_/' | grep -f - ${annodir}/${prefix}_tigrfam.gff > ${prefix}_$binID/${prefix}_$binID.tigrfam.gff || true
+                       grep ">" $binFA | sed -e 's/>//' -e 's/$/_/' | grep -f - ${annodir}/${prefix}_gene_phylogeny.tsv > ${prefix}_$binID/${prefix}_$binID.gene_phylogeny.tsv || true
+                       grep ">" $binFA | sed -e 's/>//' -e 's/$/_/' | grep -f - ${annodir}/${prefix}_ko.tsv > ${prefix}_$binID/${prefix}_$binID.ko.tsv || true
+                       grep ">" $binFA | sed -e 's/>//' -e 's/$/_/' | grep -f - ${annodir}/${prefix}_ec.tsv > ${prefix}_$binID/${prefix}_$binID.ec.tsv || true
+                       grep ">" $binFA | sed -e 's/>//' -e 's/$/_/' | grep -f - ${annodir}/${prefix}_product_names.tsv > ${prefix}_$binID/${prefix}_$binID.product_names.tsv || true
+                       grep ">" $binFA | sed -e 's/>//' -e 's/$/_/' | grep -f - ${annodir}/${prefix}_crt.crisprs > ${prefix}_$binID/${prefix}_$binID.crt.crisprs || true
 	               mv $binFA ${prefix}_$binID/${prefix}_$binID.fna
                        zip ${prefix}_$binID.zip ${prefix}_$binID/*
                        done
