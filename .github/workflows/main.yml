@@ -22,3 +22,9 @@ jobs:
       - name: Validate metadata generation
         run: |
           make testmetadata
+      - name: Upload logs on fail
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v3
+        with:
+          name: Build failure logs
+          path: cromwell-executions
