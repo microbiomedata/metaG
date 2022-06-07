@@ -30,7 +30,7 @@ testarea:
 	(cd t && ln -s ../subworkflows/*.wdl ../*.wdl ../tests/*.wdl .)
 
 testmetadata:
-	java -Dconfig.file=./test/docker.conf -jar /tmp/cromwell.jar run ./t/validate_finish.wdl
+	java -Dconfig.file=./tests/docker.conf -jar /tmp/cromwell.jar run ./t/validate_finish.wdl
 	python ./tests/quick_merge.py /tmp/testout/ > results.json
 	jsonschema -i results.json ./nmdc-schema/jsonschema/nmdc.schema.json
 	
