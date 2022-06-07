@@ -16,6 +16,8 @@ jobs:
         run: |
              make prep
              make testarea
+             pip install jsonschema
+             git clone https://github.com/microbiomedata/nmdc-schema
       - name: Validate WDL
         run: |
           java -jar /tmp/womtool.jar validate ./t/nmdc-metag_full.wdl

@@ -31,3 +31,6 @@ testarea:
 
 testmetadata:
 	java -jar /tmp/cromwell.jar run ./t/validate_finish.wdl
+	python ./tests/quick_merge.py /tmp/testout/ > results.json
+	jsonschema -i results.json ./nmdc-schema/jsonschema/nmdc.schema.json
+	
