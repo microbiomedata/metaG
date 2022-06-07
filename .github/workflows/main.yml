@@ -13,7 +13,9 @@ jobs:
              wget -O /tmp/womtool.jar https://github.com/broadinstitute/cromwell/releases/download/79/womtool-79.jar
              java -version
       - name: Prepare
-        run: make prep
+        run: |
+             make prep
+             make testarea
       - name: Validate WDL
         run: |
           java -jar /tmp/womtool.jar validate nmdc-metag_full.wdl
