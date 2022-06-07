@@ -41,7 +41,7 @@ workflow nmdc_metag {
     call split_interleaved_fastq {
       input:
         reads=qc.filtered[0],
-        container="microbiomedata/bbtools:38.94"
+        container="microbiomedata/bbtools:38.96"
     }
   }
 
@@ -98,6 +98,16 @@ workflow nmdc_metag {
            smart_gff=annotation.smart_gff,
            supfam_gff=annotation.supfam_gff,
            cath_funfam_gff=annotation.cath_funfam_gff,
+           crt_gff=annotation.crt_gff,
+           genemark_gff=annotation.genemark_gff,
+           prodigal_gff=annotation.prodigal_gff,
+           trna_gff=annotation.trna_gff,
+           misc_bind_misc_feature_regulatory_gff=annotation.misc_bind_misc_feature_regulatory_gff,
+           rrna_gff=annotation.rrna_gff,
+           ncrna_tmrna_gff=annotation.ncrna_tmrna_gff,
+           crt_crisprs=annotation.crt_crisprs,
+           product_names_tsv=annotation.product_names_tsv,
+           gene_phylogeny_tsv=annotation.gene_phylogeny_tsv,
            ko_ec_gff=annotation.ko_ec_gff,
            stats_tsv=annotation.stats_tsv,
            stats_json=annotation.stats_json,
@@ -190,14 +200,14 @@ task finish {
    String git_url
    File read
    File filtered
-   File filtered_stats
-   File filtered_stats2
+   File? filtered_stats
+   File? filtered_stats2
    File fasta
    File scaffold
-   File agp
+   File? agp
    File bam
-   File samgz
-   File covstats
+   File? samgz
+   File? covstats
    File asmstats
    File proteins_faa
    File structural_gff
@@ -210,26 +220,33 @@ task finish {
    File smart_gff
    File supfam_gff
    File cath_funfam_gff
+   File crt_gff
+   File genemark_gff
+   File prodigal_gff
+   File trna_gff
+   File misc_bind_misc_feature_regulatory_gff
+   File rrna_gff
+   File ncrna_tmrna_gff
    File ko_ec_gff
-   File stats_tsv
+   File? stats_tsv
    File stats_json
-# Future
-#    File gene_phylogeny_tsv
+# Future is now
+   File gene_phylogeny_tsv
 #    File proteins_cog_domtblout
 #    File proteins_pfam_domtblout
 #    File proteins_tigrfam_domtblout
 #    File proteins_smart_domtblout
 #    File proteins_supfam_domtblout
 #    File proteins_cath_funfam_domtblout
-#    File product_names_tsv
-#    File crt_crisprs
-   File short
-   File lowdepth
-   File unbinned
+   File product_names_tsv
+   File crt_crisprs
+   File? short
+   File? lowdepth
+   File? unbinned
    File? checkm
    Array[File] hqmq_bin_fasta_files
    Array[File] bin_fasta_files
-   File mags_stats_json
+   File? mags_stats_json
    Int n_hqmq=length(hqmq_bin_fasta_files)
    Int n_bin=length(bin_fasta_files)
    File? gottcha2_report_tsv
@@ -327,6 +344,17 @@ task finish {
        cat ${smart_gff} | sed ${sed} > ${annodir}/${prefix}_smart.gff
        cat ${supfam_gff} | sed ${sed} > ${annodir}/${prefix}_supfam.gff
        cat ${cath_funfam_gff} | sed ${sed} > ${annodir}/${prefix}_cath_funfam.gff
+       cat ${crt_gff} | sed ${sed} > ${annodir}/${prefix}_crt.gff
+       cat ${genemark_gff} | sed ${sed} > ${annodir}/${prefix}_genemark.gff
+       cat ${prodigal_gff} | sed ${sed} > ${annodir}/${prefix}_prodigal.gff
+       cat ${trna_gff} | sed ${sed} > ${annodir}/${prefix}_trna.gff
+       cat ${misc_bind_misc_feature_regulatory_gff} | sed ${sed} > ${annodir}/${prefix}_rfam_misc_bind_misc_feature_regulatory.gff
+       cat ${rrna_gff} | sed ${sed} > ${annodir}/${prefix}_rfam_rrna.gff
+       cat ${ncrna_tmrna_gff} | sed ${sed} > ${annodir}/${prefix}_rfam_ncrna_tmrna.gff
+       cat ${crt_crisprs} | sed ${sed} > ${annodir}/${prefix}_crt.crisprs
+       cat ${product_names_tsv} | sed ${sed} > ${annodir}/${prefix}_product_names.tsv
+       cat ${gene_phylogeny_tsv} | sed ${sed} > ${annodir}/${prefix}_gene_phylogeny.tsv
+
        cat ${ko_ec_gff} | sed ${sed} > ${annodir}/${prefix}_ko_ec.gff
        cat ${stats_tsv} | sed ${sed} > ${annodir}/${prefix}_stats.tsv
        cat ${stats_json} | sed ${sed} > ${annodir}/${prefix}_stats.json
@@ -349,7 +377,17 @@ task finish {
              ${annodir}/${prefix}_smart.gff 'SMART GFF file' \
              ${annodir}/${prefix}_supfam.gff 'SuperFam GFF file' \
              ${annodir}/${prefix}_cath_funfam.gff 'Cath FunFam GFF file' \
-             ${annodir}/${prefix}_ko_ec.gff 'KO_EC GFF file'
+             ${annodir}/${prefix}_crt.gff 'CRT GFF file' \
+             ${annodir}/${prefix}_genemark.gff 'Genemark GFF file' \
+             ${annodir}/${prefix}_prodigal.gff 'Prodigal GFF file' \
+             ${annodir}/${prefix}_trna.gff 'tRNA GFF File' \
+             ${annodir}/${prefix}_rfam_misc_bind_misc_feature_regulatory.gff 'RFAM misc binding GFF file' \
+             ${annodir}/${prefix}_rfam_rrna.gff 'RFAM rRNA GFF file' \
+             ${annodir}/${prefix}_rfam_ncrna_tmrna.gff 'RFAM rmRNA GFF file' \
+	     ${annodir}/${prefix}_crt.crisprs 'CRISPRS file' \
+	     ${annodir}/${prefix}_product_names.tsv 'Product Names tsv' \
+             ${annodir}/${prefix}_gene_phylogeny.tsv 'Gene Phylogeny tsv' \
+	     ${annodir}/${prefix}_ko_ec.gff 'KO_EC GFF file'
        cp features.json annotations.json activity.json data_objects.json ${annodir}/
 
        # MAGS

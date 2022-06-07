@@ -1,0 +1,32 @@
+on: [push]
+
+jobs:
+  test_and_validate:
+    runs-on: ubuntu-latest
+    name: Job to validate and test WDL
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Dependencies
+        run: |
+             wget --quiet -O /tmp/cromwell.jar https://github.com/broadinstitute/cromwell/releases/download/79/cromwell-79.jar
+             wget --quiet -O /tmp/womtool.jar https://github.com/broadinstitute/cromwell/releases/download/79/womtool-79.jar
+             java -version
+      - name: Prepare
+        run: |
+             make prep
+             make testarea
+             pip install jsonschema
+             git clone https://github.com/microbiomedata/nmdc-schema
+      - name: Validate WDL
+        run: |
+          java -jar /tmp/womtool.jar validate ./t/nmdc-metag_full.wdl
+      - name: Validate metadata generation
+        run: |
+          make testmetadata
+      - name: Upload logs on fail
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v3
+        with:
+          name: Build failure logs
+          path: cromwell-executions
