@@ -9,8 +9,8 @@ jobs:
         uses: actions/checkout@v3
       - name: Dependencies
         run: |
-             curl -o /tmp/cromwell.jar https://github.com/broadinstitute/cromwell/releases/download/79/cromwell-79.jar
-             curl -o /tmp/womtool.jar https://github.com/broadinstitute/cromwell/releases/download/79/womtool-79.jar
+             wget -O /tmp/cromwell.jar https://github.com/broadinstitute/cromwell/releases/download/79/cromwell-79.jar
+             wget -O /tmp/womtool.jar https://github.com/broadinstitute/cromwell/releases/download/79/womtool-79.jar
              java -version
       - name: Prepare
         run: make prep
