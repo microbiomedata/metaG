@@ -1,0 +1,22 @@
+on: [push]
+
+jobs:
+  test_and_validate:
+    runs-on: ubuntu-latest
+    name: Job to validate and test WDL
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Dependencies
+        run: |
+             curl -o /tmp/cromwell.jar https://github.com/broadinstitute/cromwell/releases/download/79/cromwell-79.jar
+             curl -o /tmp/womtool.jar https://github.com/broadinstitute/cromwell/releases/download/79/womtool-79.jar
+             java -version
+      - name: Prepare
+        run: make prep
+      - name: Validate WDL
+        run: |
+          java -jar /tmp/womtool.jar validate nmdc-metag_full.wdl
+      - name: Validate metadata generation
+        run: |
+          make testmetadata

@@ -13,7 +13,7 @@ prep:
 	mkdir -p subworkflows
 	git clone --depth 1 https://github.com/microbiomedata/ReadsQC -b b1.0.3 subworkflows/ReadsQC
 	git clone --depth 1 https://github.com/microbiomedata/metaAssembly -b b1.0.3 subworkflows/metaAssembly
-	git clone --depth 1 https://github.com/microbiomedata/mg_annotation -b b1.0.1 subworkflows/mg_annotation
+	git clone --depth 1 https://github.com/microbiomedata/mg_annotation -b add_outputs subworkflows/mg_annotation
 	git clone --depth 1 https://github.com/microbiomedata/ReadbasedAnalysis -b b1.0.3 subworkflows/ReadbasedAnalysis
 	git clone --depth 1 https://github.com/microbiomedata/metaMAGs -b b1.0.3 subworkflows/metaMAGs
 	(cd subworkflows && ln -s */*wdl .)
@@ -23,3 +23,9 @@ validate:
 
 test:
 	java -jar $(CROMWELL_JAR) submit -h $(CROMWELL_URL) $(METAG_FULL_WORKFLOW) -p $(BUNDLE) -i $(METAG_INPUT) -l $(METAG_LABELS)
+
+testmetadata:
+	rm -rf ./t
+	mkdir ./t
+	(cd t && ln -s ../subworkflows/*.wdl ../*.wdl ../tests/*.wdl .)
+	java -jar /tmp/cromwell.jar run ./t/validate_finish.wdl
