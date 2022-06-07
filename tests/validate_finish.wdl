@@ -9,7 +9,7 @@ workflow validate_finish {
    String resource="NERSC"
    String url_root="http"
    String git_url="test"
-   String outdir="/global/cfs/cdirs/m3408/aim2/dev/metaG_test/testout"
+   String outdir="/tmp/testout"
   call stage {
 	input: imports=input_bundle, 
 	   container="microbiomedata/workflowmeta:1.0.5.1"
