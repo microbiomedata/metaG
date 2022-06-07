@@ -4,7 +4,6 @@ workflow validate_finish {
    String input_bundle="https://portal.nersc.gov/project/m3408/test_data/validate_imports.zip"   
    String container="microbiomedata/workflowmeta:1.0.5.1"
    String proj="test"
-   String start="now"
    String informed_by="test"
    String resource="NERSC"
    String url_root="http"
@@ -18,7 +17,7 @@ workflow validate_finish {
   call metag.finish as fin {
 	input: container="microbiomedata/workflowmeta:1.0.5.1",
            proj=proj,
-           start=start,
+           start=stage.start,
            resource=resource,
            url_root=url_root,
            git_url=git_url,
@@ -86,9 +85,12 @@ task stage {
     command {
          wget ${imports}
 	 unzip validate_imports.zip
+         date --iso-8601=seconds > start.txt
+
     }
 
     output {
+         String start = read_string("start.txt")
    	 File read="nmdc_filtered.fastq.gz"
    	 File filtered="nmdc_filtered.fastq.gz"
 	 File? filtered_stats="nmdc_filterStats.txt"
