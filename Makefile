@@ -24,8 +24,10 @@ validate:
 test:
 	java -jar $(CROMWELL_JAR) submit -h $(CROMWELL_URL) $(METAG_FULL_WORKFLOW) -p $(BUNDLE) -i $(METAG_INPUT) -l $(METAG_LABELS)
 
-testmetadata:
+testarea:
 	rm -rf ./t
 	mkdir ./t
 	(cd t && ln -s ../subworkflows/*.wdl ../*.wdl ../tests/*.wdl .)
+
+testmetadata:
 	java -jar /tmp/cromwell.jar run ./t/validate_finish.wdl
