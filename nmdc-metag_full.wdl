@@ -69,7 +69,7 @@ workflow nmdc_metag {
 
 
   call finish {
-    input: container="microbiomedata/workflowmeta:1.0.5.1",
+    input: container="microbiomedata/workflowmeta:test",
            proj=proj,
            start=stage.start,
            resource=resource,
