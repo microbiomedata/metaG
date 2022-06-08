@@ -383,7 +383,7 @@ task finish {
              ${annodir}/${prefix}_rfam_rrna.gff "GFF3 file format with RFAM RRNA" "RFAM Annotation GFF" \
              ${annodir}/${prefix}_rfam_ncrna_tmrna.gff "GFF3 file format with TMRNA" "TMRNA Annotation GFF" \
              ${annodir}/${prefix}_ko_ec.gff "GFF3 file format with KO_EC" "KO_EC Annotation GFF" \
-	     ${annodir}/${prefix}_products_names.tsv "Tab delimited file for Product Names" "Product Names" \
+	     ${annodir}/${prefix}_product_names.tsv "Tab delimited file for Product Names" "Product Names" \
  	     ${annodir}/${prefix}_gene_phylogeny.tsv "Tab delimited file for Gene Phylogeny" "Gene Phylogeny tsv" \
 	     ${annodir}/${prefix}_crt.crisprs "Crispr file for cripsr terms" "Crisprt Terms" \
        cp features.json annotations.json activity.json data_objects.json ${annodir}/
