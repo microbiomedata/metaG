@@ -105,12 +105,12 @@ workflow nmdc_metag {
            misc_bind_misc_feature_regulatory_gff=annotation.misc_bind_misc_feature_regulatory_gff,
            rrna_gff=annotation.rrna_gff,
            ncrna_tmrna_gff=annotation.ncrna_tmrna_gff,
-           crt_crisprs=annotation.crt_crisprs,
-           product_names_tsv=annotation.product_names_tsv,
-           gene_phylogeny_tsv=annotation.gene_phylogeny_tsv,
            ko_ec_gff=annotation.ko_ec_gff,
            stats_tsv=annotation.stats_tsv,
            stats_json=annotation.stats_json,
+           crt_crisprs=annotation.crt_crisprs,
+           product_names_tsv=annotation.product_names_tsv,
+           gene_phylogeny_tsv=annotation.gene_phylogeny_tsv,
            gottcha2_report_tsv = ReadbasedAnalysis.gottcha2_report_tsv,
            gottcha2_full_tsv = ReadbasedAnalysis.gottcha2_full_tsv,
            gottcha2_krona_html = ReadbasedAnalysis.gottcha2_krona_html,
@@ -230,7 +230,6 @@ task finish {
    File ko_ec_gff
    File? stats_tsv
    File stats_json
-# Future is now
    File gene_phylogeny_tsv
 #    File proteins_cog_domtblout
 #    File proteins_pfam_domtblout
@@ -295,8 +294,8 @@ task finish {
              --extra stats.json \
              --inputs ${read} \
              --outputs \
-             ${qadir}/${prefix}_filtered.fastq.gz 'Filtered Reads' \
-             ${qadir}/${prefix}_filterStats.txt 'Filtered Stats'
+             ${qadir}/${prefix}_filtered.fastq.gz "Reads QC result fastq (clean data)" "Filtered Sequencing Read"\
+             ${qadir}/${prefix}_filterStats.txt "Reads QC summary statistics" "QC Statistics"
        cp activity.json data_objects.json ${qadir}/
 
        # Generate assembly objects
@@ -324,11 +323,11 @@ task finish {
              --extra stats.json \
              --inputs ${qadir}/${prefix}_filtered.fastq.gz \
              --outputs \
-             ${assemdir}/${prefix}_contigs.fna 'Assembled contigs fasta' \
-             ${assemdir}/${prefix}_scaffolds.fna 'Assembled scaffold fasta' \
-             ${assemdir}/${prefix}_covstats.txt 'Metagenome Contig Coverage Stats' \
-             ${assemdir}/${prefix}_assembly.agp 'Assembled AGP file' \
-             ${assemdir}/${prefix}_pairedMapped_sorted.bam 'Metagenome Alignment BAM file'
+             ${assemdir}/${prefix}_contigs.fna "Final assembly contigs fasta" "Assembly Contigs"\
+             ${assemdir}/${prefix}_scaffolds.fna "Final assembly scaffolds fasta" "Assembly Scaffolds"\
+             ${assemdir}/${prefix}_covstats.txt "Assembled contigs coverage information" "Assembly Coverage Stats"\
+             ${assemdir}/${prefix}_assembly.agp "An AGP format file that describes the assembly" "Assembly AGP"\
+             ${assemdir}/${prefix}_pairedMapped_sorted.bam "Sorted bam file of reads mapping back to the final assembly" "Assembly Coverage BAM"
        cp activity.json data_objects.json ${assemdir}/
 
        # Generate annotation objects
@@ -354,7 +353,6 @@ task finish {
        cat ${crt_crisprs} | sed ${sed} > ${annodir}/${prefix}_crt.crisprs
        cat ${product_names_tsv} | sed ${sed} > ${annodir}/${prefix}_product_names.tsv
        cat ${gene_phylogeny_tsv} | sed ${sed} > ${annodir}/${prefix}_gene_phylogeny.tsv
-
        cat ${ko_ec_gff} | sed ${sed} > ${annodir}/${prefix}_ko_ec.gff
        cat ${stats_tsv} | sed ${sed} > ${annodir}/${prefix}_stats.tsv
        cat ${stats_json} | sed ${sed} > ${annodir}/${prefix}_stats.json
@@ -366,28 +364,28 @@ task finish {
              --resource '${resource}' --url ${url_root}${proj}/annotation/ --giturl ${git_url} \
              --inputs ${assemdir}/${prefix}_contigs.fna \
              --outputs \
-             ${annodir}/${prefix}_proteins.faa 'Protein FAA' \
-             ${annodir}/${prefix}_structural_annotation.gff 'Structural annotation GFF file' \
-             ${annodir}/${prefix}_functional_annotation.gff 'Functional annotation GFF file' \
-             ${annodir}/${prefix}_ko.tsv 'KO TSV file' \
-             ${annodir}/${prefix}_ec.tsv 'EC TSV file' \
-             ${annodir}/${prefix}_cog.gff 'COG GFF file' \
-             ${annodir}/${prefix}_pfam.gff 'PFAM GFF file' \
-             ${annodir}/${prefix}_tigrfam.gff 'TigrFam GFF file' \
-             ${annodir}/${prefix}_smart.gff 'SMART GFF file' \
-             ${annodir}/${prefix}_supfam.gff 'SuperFam GFF file' \
-             ${annodir}/${prefix}_cath_funfam.gff 'Cath FunFam GFF file' \
-             ${annodir}/${prefix}_crt.gff 'CRT GFF file' \
-             ${annodir}/${prefix}_genemark.gff 'Genemark GFF file' \
-             ${annodir}/${prefix}_prodigal.gff 'Prodigal GFF file' \
-             ${annodir}/${prefix}_trna.gff 'tRNA GFF File' \
-             ${annodir}/${prefix}_rfam_misc_bind_misc_feature_regulatory.gff 'RFAM misc binding GFF file' \
-             ${annodir}/${prefix}_rfam_rrna.gff 'RFAM rRNA GFF file' \
-             ${annodir}/${prefix}_rfam_ncrna_tmrna.gff 'RFAM rmRNA GFF file' \
-	     ${annodir}/${prefix}_crt.crisprs 'CRISPRS file' \
-	     ${annodir}/${prefix}_product_names.tsv 'Product Names tsv' \
-             ${annodir}/${prefix}_gene_phylogeny.tsv 'Gene Phylogeny tsv' \
-	     ${annodir}/${prefix}_ko_ec.gff 'KO_EC GFF file'
+             ${annodir}/${prefix}_proteins.faa "FASTA amino acid file for annotated proteins" "Annotation Amino Acid FASTA" \
+             ${annodir}/${prefix}_structural_annotation.gff "GFF3 format file with structural annotations" "Structural Annotation GFF" \
+             ${annodir}/${prefix}_functional_annotation.gff "GFF3 format file with functional annotations" "Functional Annotation GFF" \
+             ${annodir}/${prefix}_ko.tsv "Tab delimited file for KO annotation" "Annotation KEGG Orthology" \
+             ${annodir}/${prefix}_ec.tsv "Tab delimited file for EC annotation" "Annotation Enzyme Commission" \
+             ${annodir}/${prefix}_cog.gff "GFF3 format file with COGs" "Clusters of Orthologous Groups (COG) Annotation GFF" \
+             ${annodir}/${prefix}_pfam.gff "GFF3 format file with Pfam" "Pfam Annotation GFF" \
+             ${annodir}/${prefix}_tigrfam.gff "GFF3 format file with TIGRfam" "TIGRFam Annotation GFF" \
+             ${annodir}/${prefix}_smart.gff "GFF3 format file with SMART" "SMART Annotation GFF" \
+             ${annodir}/${prefix}_supfam.gff "GFF3 format file with SUPERFam" "SUPERFam Annotation GFF" \
+             ${annodir}/${prefix}_cath_funfam.gff "GFF3 format file with CATH FunFams" "CATH FunFams (Functional Families) Annotation GFF" \
+             ${annodir}/${prefix}_crt.gff "GFF3 format file with CRT terms" "CRT Annotation GFF" \
+             ${annodir}/${prefix}_genemark.gff "GFF3 file format with Genemark" "Genmark Annotation GFF" \
+             ${annodir}/${prefix}_prodigal.gff "GFF3 file format with Prodigal" "Prodigal Annotation GFF" \
+             ${annodir}/${prefix}_trna.gff "GFF3 file format with TRNA" "TRNA Annotation GFF" \
+             ${annodir}/${prefix}_rfam_misc_bind_misc_feature_regulatory.gff "GFF3 file for misc features" "Misc Annotation GFF" \
+             ${annodir}/${prefix}_rfam_rrna.gff "GFF3 file format with RFAM RRNA" "RFAM Annotation GFF" \
+             ${annodir}/${prefix}_rfam_ncrna_tmrna.gff "GFF3 file format with TMRNA" "TMRNA Annotation GFF" \
+             ${annodir}/${prefix}_ko_ec.gff "GFF3 file format with KO_EC" "KO_EC Annotation GFF" \
+	     ${annodir}/${prefix}_products_names.tsv "Tab delimited file for Product Names" "Product Names" \
+ 	     ${annodir}/${prefix}_gene_phylogeny.tsv "Tab delimited file for Gene Phylogeny" "Gene Phylogeny tsv" \
+	     ${annodir}/${prefix}_crt.crisprs "Crispr file for cripsr terms" "Crisprt Terms" \
        cp features.json annotations.json activity.json data_objects.json ${annodir}/
 
        # MAGS
@@ -432,8 +430,8 @@ task finish {
                       ${assemdir}/${prefix}_pairedMapped_sorted.bam \
                       ${annodir}/${prefix}_functional_annotation.gff \
              --outputs \
-             ${magsdir}/${prefix}_checkm_qa.out "metabat2 bin checkm quality assessment result" \
-             ${magsdir}/${prefix}_hqmq_bin.zip "high-quality and medium-quality bins" \
+             ${magsdir}/${prefix}_checkm_qa.out "CheckM statistics report" "CheckM Statistics" \
+             ${magsdir}/${prefix}_hqmq_bin.zip "Metagenome bin contigs fasta" "Metagenome Bins" \
 #             "gtdbtk.bac120.summary.tsv" "gtdbtk bacterial assignment result summary table" \
 #             "gtdbtk.ar122.summary.tsv" "gtdbtk archaea assignment result summary table" \
        cp activity.json data_objects.json ${magsdir}/
@@ -458,15 +456,15 @@ task finish {
              --resource '${resource}' --url ${url_root}${proj}/ReadbasedAnalysis/ --giturl ${git_url} \
              --inputs ${qadir}/${prefix}_filtered.fastq.gz \
              --outputs \
-             ${rbadir}/${prefix}_gottcha2_report.tsv "Gottcha2 TSV report" \
-             ${rbadir}/${prefix}_gottcha2_report_full.tsv "Gottcha2 full TSV report" \
-             ${rbadir}/${prefix}_gottcha2_krona.html "Gottcha2 Krona HTML report" \
-             ${rbadir}/${prefix}_centrifuge_classification.tsv "Centrifuge classification TSV report" \
-             ${rbadir}/${prefix}_centrifuge_report.tsv "Centrifuge TSV report" \
-             ${rbadir}/${prefix}_centrifuge_krona.html "Centrifuge Krona HTML report" \
-             ${rbadir}/${prefix}_kraken2_classification.tsv "Kraken classification TSV report" \
-             ${rbadir}/${prefix}_kraken2_report.tsv "Kraken2 TSV report" \
-             ${rbadir}/${prefix}_kraken2_krona.html "Kraken2 Krona HTML report"
+             ${rbadir}/${prefix}_gottcha2_report.tsv "GOTTCHA2 output report file" "GOTTCHA2 Classification Report"  \
+             ${rbadir}/${prefix}_gottcha2_report_full.tsv "" "" \
+             ${rbadir}/${prefix}_gottcha2_krona.html "GOTTCHA2 krona plot HTML file" "GOTTCHA2 Krona Plot" \
+             ${rbadir}/${prefix}_centrifuge_classification.tsv "Centrifuge output read classification file" "Centrifuge Taxonomic Classification" \
+             ${rbadir}/${prefix}_centrifuge_report.tsv "Centrifuge Classification Report" "Centrifuge output report file" \
+             ${rbadir}/${prefix}_centrifuge_krona.html "Centrifug krona plot HTML file" "Centrifuge Krona Plot" \
+             ${rbadir}/${prefix}_kraken2_classification.tsv "Kraken2 output read classification file" "Kraken2 Taxonomic Classification" \
+             ${rbadir}/${prefix}_kraken2_report.tsv "Kraken2 output report file" "Kraken2 Classification Report" \
+             ${rbadir}/${prefix}_kraken2_krona.html "Kraken2 output report file" "Kraken2 Classification Report"
        cp activity.json data_objects.json ${rbadir}/
 
        # Top-level Container
@@ -485,5 +483,3 @@ task finish {
      docker: container
    }
 }
-
-
