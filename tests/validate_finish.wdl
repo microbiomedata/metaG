@@ -2,7 +2,7 @@ import "nmdc-metag_full.wdl" as metag
 
 workflow validate_finish {
    String input_bundle="https://portal.nersc.gov/project/m3408/test_data/validate_imports.zip"   
-   String container="microbiomedata/workflowmeta:1.0.5.1"
+   String container="microbiomedata/workflowmeta:1.0.6"
    String proj="test"
    String informed_by="test"
    String resource="NERSC"
@@ -11,11 +11,11 @@ workflow validate_finish {
    String outdir="/tmp/testout"
   call stage {
 	input: imports=input_bundle, 
-	   container="microbiomedata/workflowmeta:1.0.5.1"
+	   container="microbiomedata/workflowmeta:1.0.6"
 	}
 
   call metag.finish as fin {
-	input: container="microbiomedata/workflowmeta:1.0.5.1",
+	input: container="microbiomedata/workflowmeta:1.0.6",
            proj=proj,
            start=stage.start,
            resource=resource,
