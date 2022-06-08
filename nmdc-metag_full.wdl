@@ -385,7 +385,7 @@ task finish {
              ${annodir}/${prefix}_ko_ec.gff "GFF3 file format with KO_EC" "KO_EC Annotation GFF" \
 	     ${annodir}/${prefix}_product_names.tsv "Tab delimited file for Product Names" "Product Names" \
  	     ${annodir}/${prefix}_gene_phylogeny.tsv "Tab delimited file for Gene Phylogeny" "Gene Phylogeny tsv" \
-	     ${annodir}/${prefix}_crt.crisprs "Crispr file for cripsr terms" "Crisprt Terms" \
+	     ${annodir}/${prefix}_crt.crisprs "Crispr file for cripsr terms" "Crisprt Terms" 
        cp features.json annotations.json activity.json data_objects.json ${annodir}/
 
        # MAGS
@@ -433,7 +433,7 @@ task finish {
              ${magsdir}/${prefix}_checkm_qa.out "CheckM statistics report" "CheckM Statistics" \
              ${magsdir}/${prefix}_hqmq_bin.zip "Metagenome bin contigs fasta" "Metagenome Bins" \
 #             "gtdbtk.bac120.summary.tsv" "gtdbtk bacterial assignment result summary table" \
-#             "gtdbtk.ar122.summary.tsv" "gtdbtk archaea assignment result summary table" \
+#             "gtdbtk.ar122.summary.tsv" "gtdbtk archaea assignment result summary table" 
        cp activity.json data_objects.json ${magsdir}/
 
        #Readbased Analysis
