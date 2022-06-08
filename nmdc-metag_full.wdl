@@ -457,7 +457,7 @@ task finish {
              --inputs ${qadir}/${prefix}_filtered.fastq.gz \
              --outputs \
              ${rbadir}/${prefix}_gottcha2_report.tsv "GOTTCHA2 output report file" "GOTTCHA2 Classification Report"  \
-             ${rbadir}/${prefix}_gottcha2_report_full.tsv "" "" \
+             ${rbadir}/${prefix}_gottcha2_report_full.tsv "GOTTCHA2 output full report" "GOTTCHA2 Report Full" \
              ${rbadir}/${prefix}_gottcha2_krona.html "GOTTCHA2 krona plot HTML file" "GOTTCHA2 Krona Plot" \
              ${rbadir}/${prefix}_centrifuge_classification.tsv "Centrifuge output read classification file" "Centrifuge Taxonomic Classification" \
              ${rbadir}/${prefix}_centrifuge_report.tsv "Centrifuge Classification Report" "Centrifuge output report file" \
