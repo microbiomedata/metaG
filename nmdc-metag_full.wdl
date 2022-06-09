@@ -294,7 +294,7 @@ task finish {
              --extra stats.json \
              --inputs ${read} \
              --outputs \
-             ${qadir}/${prefix}_filtered.fastq.gz "Reads QC result fastq (clean data)" "Filtered Sequencing Read"\
+             ${qadir}/${prefix}_filtered.fastq.gz "Reads QC result fastq (clean data)" "Filtered Sequencing Reads" \
              ${qadir}/${prefix}_filterStats.txt "Reads QC summary statistics" "QC Statistics"
        cp activity.json data_objects.json ${qadir}/
 
