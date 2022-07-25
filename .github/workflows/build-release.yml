@@ -1,0 +1,33 @@
+name: Build Release Assets
+on:
+  release:
+    branches:
+      -master
+      -create_products
+    types: [published]
+
+jobs:
+  build-dist:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out GitHub Repo
+        uses: actions/checkout@v2
+
+      #
+      # Generate bundle
+      #
+      - name: Generate bundle
+        run: |
+             make pre
+             make zip
+
+      #
+      # Add the built assets to the release
+      #
+      - name: Upload specs to release
+        uses: alexellis/upload-assets@0.2.2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          asset_paths: '["dist.zip"]'
+
